@@ -4,7 +4,6 @@ from PyPDF2 import PdfReader
 from autocorrect import Speller
 from nltk.stem.snowball import SnowballStemmer
 
-
 # #nltk.download()
 #text = "CIAOou ssono mattia, e QUESTOu è un testoot vai a www.esempio.it o https://www.freecodecamp.org/learn/back-end-development-and-apis/mongodb-and-mongoose/install-and-set-up-mongoose"
 
@@ -13,21 +12,21 @@ from nltk.stem.snowball import SnowballStemmer
 elaboratore_pdf = PdfOp("ManualePraticoJava.pdf")
 numero_pagina = 20
 testo_pagina = elaboratore_pdf.lettura_pagina(numero_pagina)
-#if testo_pagina :cls
+#if testo_pagina :
  #  print (f"pagina {numero_pagina}:\n{testo_pagina}")
 
+testo_prova = "tec-nologie e l'amianto e gen- naro"
 #TEST2 PRE-ELABORAZIONE TESTO PAGINA PDF 
 pre_elaborazione_pdf = Preprocessing(testo_pagina)
 pre_elaborazione_pdf.remove_url()
 pre_elaborazione_pdf.remove_whitespace()
 pre_elaborazione_pdf.tokenizzazione()
-pre_elaborazione_pdf.spelling_correction()
+#pre_elaborazione_pdf.spelling_correction()
 pre_elaborazione_pdf.lowercasing()
 pre_elaborazione_pdf.remove_punctuation()
 pre_elaborazione_pdf.remove_stopword()
 
 print(f"token elaborati : {pre_elaborazione_pdf.get_tokens()}\n testo elaborato : {pre_elaborazione_pdf.get_text()}")
-
 
 #elaboratore = Preprocessing(text)
 # #step 1 tokenizzazione: dividere il testo in parole individuali(token)

@@ -15,7 +15,14 @@ class Preprocessing:
     
     #step 1 tokenizzazione: dividere il testo in parole individuali(token)
     def tokenizzazione(self):
-        self.tokens = nltk.word_tokenize(self.testo)
+        pattern = r'\b[\w-]+\b'
+        self.testo = re.sub(r'(-) ', r'\1', self.testo)  # Rimuovi gli spazi dopo i trattini
+
+        words = re.findall(pattern,self.testo)
+
+        words = [re.sub('-', '', word) for word in words]
+        self.tokens = nltk.word_tokenize(' '.join(words))
+
         
     
     #step 2 lowercasing : rendere le maiuscole minuscole 
@@ -24,6 +31,7 @@ class Preprocessing:
 
     #step 3 remove punctuation
     def remove_punctuation(self):
+        
         self.tokens = [token for token in self.tokens if token not in string.punctuation]
     
     #step 4 remove punctuationstopwords in italian (es il e ecc..)
@@ -34,13 +42,13 @@ class Preprocessing:
     #step 5 remove whitespace: replace multiple consecutive white space characters with a single space
     def remove_whitespace(self):
         self.testo = self.testo.strip()
-        self.testo = " ".join(self.testo.split())
+        self.testo = ' '.join(self.testo.split())
     
     #step 6 remove url 
     def remove_url(self):
         pattern = r'\b(?:https?://)?(?:www\.)?[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:/\S*)?\b'
         #replace URLs with an empty string
-        self.testo = re.sub(pattern, " ", self.testo)
+        self.testo = re.sub(pattern, ' ', self.testo)
       
 
     #step 7 spelling correction
