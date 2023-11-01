@@ -15,7 +15,7 @@ class Preprocessing:
     
     #step 1 tokenizzazione: dividere il testo in parole individuali(token)
     def tokenizzazione(self):
-        pattern = r'\b[\w-]+\b'
+        pattern = r'\b[\w-]+\b'  #pattern per parola con in mezzo simboli particolari 
         self.testo = re.sub(r'(-) ', r'\1', self.testo)  # Rimuovi gli spazi dopo i trattini
 
         words = re.findall(pattern,self.testo)
@@ -47,8 +47,7 @@ class Preprocessing:
     #step 6 remove url 
     def remove_url(self):
         pattern = r'\b(?:https?://)?(?:www\.)?[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:/\S*)?\b'
-        #replace URLs with an empty string
-        self.testo = re.sub(pattern, ' ', self.testo)
+        self.testo = re.sub(pattern,' ', self.testo)
       
 
     #step 7 spelling correction

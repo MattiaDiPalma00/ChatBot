@@ -3,6 +3,28 @@ from pdfop import PdfOp
 from PyPDF2 import PdfReader
 from autocorrect import Speller
 from nltk.stem.snowball import SnowballStemmer
+import os
+import pandas as pd
+
+#os.environ["JAVA_HOME"] = "C:/Program Files/Java/jdk-17"
+import pyterrier as pt
+
+
+if not pt.started():
+    pt.init()
+    pt.logging('ERROR')
+
+
+vaswani_dataset = pt.datasets.get_dataset("vaswani")
+
+indexref = vaswani_dataset.get_index()
+index = pt.IndexFactory.of(indexref)
+
+print(index.getCollectionStatistics().toString())
+
+topics = vaswani_dataset.get_topics()
+print(topics.head(5))
+
 
 # #nltk.download()
 #text = "CIAOou ssono mattia, e QUESTOu è un testoot vai a www.esempio.it o https://www.freecodecamp.org/learn/back-end-development-and-apis/mongodb-and-mongoose/install-and-set-up-mongoose"
@@ -10,14 +32,15 @@ from nltk.stem.snowball import SnowballStemmer
 #TEST1 LETTURA DI UN PDF ED ESTRAZIONE DEL TESTO
 #reader = PdfReader("Tracciaprogetto.pdf")
 elaboratore_pdf = PdfOp("ManualePraticoJava.pdf")
-numero_pagina = 20
+numero_pagina = 21
 testo_pagina = elaboratore_pdf.lettura_pagina(numero_pagina)
 #if testo_pagina :
  #  print (f"pagina {numero_pagina}:\n{testo_pagina}")
 
-testo_prova = "tec-nologie e l'amianto e gen- naro"
+testo_prova = "ciao "
+
 #TEST2 PRE-ELABORAZIONE TESTO PAGINA PDF 
-pre_elaborazione_pdf = Preprocessing(testo_pagina)
+pre_elaborazione_pdf = Preprocessing(testo_prova)
 pre_elaborazione_pdf.remove_url()
 pre_elaborazione_pdf.remove_whitespace()
 pre_elaborazione_pdf.tokenizzazione()
