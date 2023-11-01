@@ -14,7 +14,7 @@ if not pt.started():
     pt.init()
     pt.logging('ERROR')
 
-
+print("test di prova del commit")
 vaswani_dataset = pt.datasets.get_dataset("vaswani")
 
 indexref = vaswani_dataset.get_index()
