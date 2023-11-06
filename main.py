@@ -1,46 +1,33 @@
 from preprocessing import Preprocessing
+from preprocessing import AnswerMe
 from pdfop import PdfOp
 from PyPDF2 import PdfReader
 from autocorrect import Speller
 from nltk.stem.snowball import SnowballStemmer
-import os
-import pandas as pd
-
-#os.environ["JAVA_HOME"] = "C:/Program Files/Java/jdk-17"
-import pyterrier as pt
-
-
-if not pt.started():
-    pt.init()
-    pt.logging('ERROR')
-
-print("test di prova del commit")
-vaswani_dataset = pt.datasets.get_dataset("vaswani")
-
-indexref = vaswani_dataset.get_index()
-index = pt.IndexFactory.of(indexref)
-
-print(index.getCollectionStatistics().toString())
-
-topics = vaswani_dataset.get_topics()
-print(topics.head(5))
+import numpy as np
+import nltk
+import re
+import gensim
+from gensim.parsing.preprocessing import remove_stopwords
+from gensim import corpora
+from sklearn.feature_extraction.text import TfidfVectorizer 
+import heapq
 
 
 # #nltk.download()
-#text = "CIAOou ssono mattia, e QUESTOu è un testoot vai a www.esempio.it o https://www.freecodecamp.org/learn/back-end-development-and-apis/mongodb-and-mongoose/install-and-set-up-mongoose"
 
 #TEST1 LETTURA DI UN PDF ED ESTRAZIONE DEL TESTO
 #reader = PdfReader("Tracciaprogetto.pdf")
+risposta = AnswerMe()
 elaboratore_pdf = PdfOp("ManualePraticoJava.pdf")
-numero_pagina = 21
+numero_pagina = 22
 testo_pagina = elaboratore_pdf.lettura_pagina(numero_pagina)
 #if testo_pagina :
  #  print (f"pagina {numero_pagina}:\n{testo_pagina}")
 
-testo_prova = "ciao "
 
 #TEST2 PRE-ELABORAZIONE TESTO PAGINA PDF 
-pre_elaborazione_pdf = Preprocessing(testo_prova)
+pre_elaborazione_pdf = Preprocessing(testo_pagina)
 pre_elaborazione_pdf.remove_url()
 pre_elaborazione_pdf.remove_whitespace()
 pre_elaborazione_pdf.tokenizzazione()
@@ -48,32 +35,86 @@ pre_elaborazione_pdf.tokenizzazione()
 pre_elaborazione_pdf.lowercasing()
 pre_elaborazione_pdf.remove_punctuation()
 pre_elaborazione_pdf.remove_stopword()
+tfidf_vectors = pre_elaborazione_pdf.TFIDF(pre_elaborazione_pdf.get_tokens())
 
-print(f"token elaborati : {pre_elaborazione_pdf.get_tokens()}\n testo elaborato : {pre_elaborazione_pdf.get_text()}")
+print(pre_elaborazione_pdf.get_text())
 
-#elaboratore = Preprocessing(text)
-# #step 1 tokenizzazione: dividere il testo in parole individuali(token)
-# elaboratore.tokenizzazione()
+class Preprocessings:
+    #constructor
+    def __init__(self,txt):
+        # Tokenization
+        nltk.download('punkt')  #punkt is nltk tokenizer 
+        # breaking text to sentences
+        tokens = nltk.sent_tokenize(txt) 
+        self.tokens = tokens
+        self.tfidfvectoriser=TfidfVectorizer()
 
-# #step 2 lowercasing : rendere le maiuscole minuscole 
-# elaboratore.lowercasing()
-# print("lower tokens :",elaboratore.lower_case_token)
+    # Data Cleaning
+    # remove extra spaces
+    # convert sentences to lower case 
+    # remove stopword
+    def clean_sentence(self, sentence, stopwords=False):
+        sentence = sentence.lower().strip()
+        sentence = re.sub(r'[^a-z0-9\s]', '', sentence)
+        if stopwords:
+            sentence = remove_stopwords(sentence)
+        return sentence
 
-# #step 3 remove punctuation
-# elaboratore.remove_punctuation()
-# print ("tokens senza punteggiatura:",elaboratore.filtered_token)
+    # store cleaned sentences to cleaned_sentences
+    def get_cleaned_sentences(self,tokens, stopwords=False):
+        cleaned_sentences = []
+        for line in tokens:
+            cleaned = self.clean_sentence(line, stopwords)
+            cleaned_sentences.append(cleaned)
+        return cleaned_sentences
 
-# #step 4 remove punctuationstopwords in italian (es il e ecc..)
-# elaboratore.remove_stopword()
-# print("Tokens without stopwords:", elaboratore.nostopwords_tokens)
+    #do all the cleaning
+    def cleanall(self):
+        cleaned_sentences = self.get_cleaned_sentences(self.tokens, stopwords=True)
+        cleaned_sentences_with_stopwords = self.get_cleaned_sentences(self.tokens, stopwords=False)
+        # print(cleaned_sentences)
+        # print(cleaned_sentences_with_stopwords)
+        return [cleaned_sentences,cleaned_sentences_with_stopwords]
 
-# #step 5 remove whitespace: replace multiple consecutive white space characters with a single space
-# elaboratore.remove_whitespace()
-# #print("Cleaned text:", elaboratore.text_nospace)
+    # TF-IDF Vectorizer
+    def TFIDF(self,cleaned_sentences):
+        self.tfidfvectoriser.fit(cleaned_sentences)
+        tfidf_vectors=self.tfidfvectoriser.transform(cleaned_sentences)
+        return tfidf_vectors
 
-# # step 6 remove url 
-# elaboratore.remove_url()
-# # print("Testo pulito senza URL:", elaboratore.text_nourl)
+    #tfidf for question
+    def TFIDF_Q(self,question_to_be_cleaned):
+        tfidf_vectors=self.tfidfvectoriser.transform([question_to_be_cleaned])
+        return tfidf_vectors
+
+    # main call function
+    def doall(self):
+        cleaned_sentences, cleaned_sentences_with_stopwords = self.cleanall()
+        tfidf = self.TFIDF(cleaned_sentences)
+        return [cleaned_sentences,cleaned_sentences_with_stopwords,tfidf]
+
+
+preprocess = Preprocessings(testo_pagina)
+cleaned_sentences,cleaned_sentences_with_stopwords,tfidf_vectors = preprocess.doall()
+print(cleaned_sentences)
+user_question = "java per la prima volta"
+#define method
+method = 1
+question = preprocess.clean_sentence(user_question, stopwords=True)
+question_embedding = preprocess.TFIDF_Q(question)
+
+similarity_heap = AnswerMe.RetrieveAnswer(question_embedding , tfidf_vectors ,method)
+print("Question: ", user_question)
+
+# number of relevant solutions you want here it will print 2
+number_of_sentences_to_print = 1
+
+while number_of_sentences_to_print>0 and len(similarity_heap)>0:
+    x = similarity_heap.pop(0)
+    print(cleaned_sentences_with_stopwords[x[1]])
+    number_of_sentences_to_print-=1
+
+
 
 # # #step 7 remove parole frequenti 
 # # fdist = nltk.FreqDist(tokens)
