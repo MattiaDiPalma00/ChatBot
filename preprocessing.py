@@ -2,82 +2,69 @@ import nltk
 import string
 import re
 import numpy as np
+import gensim
+from gensim.parsing.preprocessing import remove_stopwords
+from gensim import corpora
 from autocorrect import Speller
 import heapq
 from sklearn.feature_extraction.text import TfidfVectorizer 
 
 class Preprocessing:
-    def __init__(self,testo):
-        self.testo = testo 
+    #constructor
+    def __init__(self,txt):
+        # Tokenization
+        tokens = nltk.sent_tokenize(txt) 
+        self.tokens = tokens
+        self.text = txt
         self.tfidfvectoriser=TfidfVectorizer()
 
-    def get_tokens(self):
-        return self.tokens
-    
-    def get_text(self):
+    # Data Cleaning
+    # remove extra spaces
+    # convert sentences to lower case 
+    # remove stopword
+    def clean_sentence(self, sentence, stopwords=False):
+        sentence = sentence.lower().strip()
+        pattern = r'\b[\w-]+\b'  #pattern per parola con in mezzo simboli particolari
+        pattern_url = r'\b(?:https?://)?(?:www\.)?[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:/\S*)?\b'
+        sentence= re.sub(pattern_url,' ', sentence) #elimina url
+        sentence = re.sub(r'(-)', '', sentence)
+        sentence = re.sub(r'(—)', '', sentence)
+        if stopwords:
+            sentence = remove_stopwords(sentence)
+        return sentence
+
+    # store cleaned sentences to cleaned_sentences
+    def get_cleaned_sentences(self,tokens, stopwords=False):
         cleaned_sentences = []
-        self.tokenizzazione()
-        for line in self.tokens:
-            cleaned = self.lowercasing()
-            cleaned = self.remove_stopword()
+        for line in tokens:
+            cleaned = self.clean_sentence(line, stopwords)
             cleaned_sentences.append(cleaned)
         return cleaned_sentences
-    
-    #step 1 tokenizzazione: dividere il testo in parole individuali(token)
-    def tokenizzazione(self):
-        pattern = r'\b[\w-]+\b'  #pattern per parola con in mezzo simboli particolari 
-        self.testo = re.sub(r'(-) ', r'\1', self.testo)  # Rimuovi gli spazi dopo i trattini
 
-        words = re.findall(pattern,self.testo)
+    #do all the cleaning
+    def cleanall(self):
+        cleaned_sentences = self.get_cleaned_sentences(self.tokens, stopwords=True)
+        cleaned_sentences_with_stopwords = self.get_cleaned_sentences(self.tokens, stopwords=False)
 
-        words = [re.sub('-', '', word) for word in words]
-        self.tokens = nltk.word_tokenize(' '.join(words))
+        return [cleaned_sentences,cleaned_sentences_with_stopwords]
 
-    #step 2 lowercasing : rendere le maiuscole minuscole 
-    def lowercasing(self):
-        self.tokens = [token.lower() for token in self.tokens]
-        self.testo.lower().split()
-
-    #step 3 remove punctuation
-    def remove_punctuation(self):
-        
-        self.tokens = [token for token in self.tokens if token not in string.punctuation]
-    
-    #step 4 remove punctuationstopwords in italian (es il e ecc..)
-    def remove_stopword(self):
-        stopwords = nltk.corpus.stopwords.words("italian")
-        self.tokens = [token for token in self.tokens if token.lower() not in stopwords]
-
-    #step 5 remove whitespace: replace multiple consecutive white space characters with a single space
-    def remove_whitespace(self):
-        self.testo = self.testo.strip()
-        self.testo = ' '.join(self.testo.split())
-    
-    #step 6 remove url 
-    def remove_url(self):
-        pattern = r'\b(?:https?://)?(?:www\.)?[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:/\S*)?\b'
-        self.testo = re.sub(pattern,' ', self.testo)
-      
-
-    #step 7 spelling correction
-    def spelling_correction(self):
-        # Crea un oggetto Speller per la lingua italiana
-        spell = Speller(lang='it')
-        correzioni = [spell(token) for token in self.tokens]
-        self.tokens = correzioni
-        # Unisci le parole corrette in un testo corretto
-        self.testo = ' '.join(correzioni)
-    
-    def TFIDF(self,testo):
-        #fit addestra il modello sul testo per il calcolo dei vettori TF-idf
-        self.tfidfvectoriser.fit(testo)
-        tfidf_vectors=self.tfidfvectoriser.transform(testo)
-
+    # TF-IDF Vectorizer
+    def TFIDF(self,cleaned_sentences):
+        self.tfidfvectoriser.fit(cleaned_sentences)
+        tfidf_vectors=self.tfidfvectoriser.transform(cleaned_sentences)
         return tfidf_vectors
-    
+
+    #tfidf for question
     def TFIDF_Q(self,question_to_be_cleaned):
         tfidf_vectors=self.tfidfvectoriser.transform([question_to_be_cleaned])
         return tfidf_vectors
+
+    # main call function
+    def doall(self):
+        cleaned_sentences, cleaned_sentences_with_stopwords = self.cleanall()
+        tfidf = self.TFIDF(cleaned_sentences)
+        return [cleaned_sentences,cleaned_sentences_with_stopwords,tfidf]
+
 
 class AnswerMe:
     #cosine similarity
@@ -114,3 +101,66 @@ class AnswerMe:
                 heapq.heappush(similarity_heap,(-similarity,index))
                 
         return similarity_heap
+
+
+class PreprocessingTesto:
+    def __init__(self,testo = ""):
+        if testo is not None:
+            self.testo = testo 
+        else:
+            self.testo = "" 
+
+    
+    def set_text(self,testo):
+        self.testo = testo
+    
+    def get_text(self):
+        return self.testo
+    
+    #step 1 tokenizzazione: dividere il testo in parole individuali(token)
+    def clean_text(self):
+        pattern = r'\b[\w-]+\b'  #pattern per parola con in mezzo simboli particolari 
+        self.testo = re.sub(r'(-) ', r'\1', self.testo)  # Rimuovi gli spazi dopo i trattini
+
+        # words = re.findall(pattern,self.testo)
+
+        # words = [re.sub('-', '', word) for word in words]
+        # self.tokens = nltk.sent_tokenize(' '.join(words))
+
+    #step 2 lowercasing : rendere le maiuscole minuscole 
+    def lowercasing(self):
+        #self.tokens = [token.lower() for token in self.tokens]
+        self.testo = self.testo.lower()
+
+    #step 3 remove punctuation
+    def remove_punctuation(self):
+        #self.tokens = [token for token in self.tokens if token not in string.punctuation]
+        punctuations = set(string.punctuation)
+        # Rimuovi i caratteri di punteggiatura dalla stringa
+        self.testo= ''.join(char for char in self.testo if char not in punctuations)
+    
+    #step 4 remove punctuationstopwords in italian (es il e ecc..)
+    def remove_stopword(self):
+        stopwords = nltk.corpus.stopwords.words("italian")
+        #self.tokens = [token for token in self.tokens if token.lower() not in stopwords]
+
+    #step 5 remove whitespace: replace multiple consecutive white space characters with a single space
+    def remove_whitespace(self):
+        self.testo = self.testo.strip()
+        #self.testo = ' '.join(self.testo.split())
+    
+    #step 6 remove url 
+    def remove_url(self):
+        pattern = r'\b(?:https?://)?(?:www\.)?[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:/\S*)?\b'
+        self.testo = re.sub(pattern,' ', self.testo)
+      
+
+    #step 7 spelling correction
+    # def spelling_correction(self):
+    #     # Crea un oggetto Speller per la lingua italiana
+    #     spell = Speller(lang='it')
+    #     correzioni = [spell(token) for token in self.tokens]
+    #     #self.tokens = correzioni
+    #     # Unisci le parole corrette in un testo corretto
+    #     self.testo = ' '.join(correzioni)
+    

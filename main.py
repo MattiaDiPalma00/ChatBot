@@ -1,110 +1,67 @@
 from preprocessing import Preprocessing
 from preprocessing import AnswerMe
+from preprocessing import PreprocessingTesto
 from pdfop import PdfOp
 from PyPDF2 import PdfReader
 from autocorrect import Speller
 from nltk.stem.snowball import SnowballStemmer
 import numpy as np
-import nltk
+import pickle
 import re
-import gensim
-from gensim.parsing.preprocessing import remove_stopwords
-from gensim import corpora
-from sklearn.feature_extraction.text import TfidfVectorizer 
-import heapq
 
 
-# #nltk.download()
-
-#TEST1 LETTURA DI UN PDF ED ESTRAZIONE DEL TESTO
-#reader = PdfReader("Tracciaprogetto.pdf")
+#LETTURA DI UN PDF ED ESTRAZIONE DEL TESTO
 risposta = AnswerMe()
 elaboratore_pdf = PdfOp("ManualePraticoJava.pdf")
-numero_pagina = 22
+numero_pagina = 35
 testo_pagina = elaboratore_pdf.lettura_pagina(numero_pagina)
-#if testo_pagina :
- #  print (f"pagina {numero_pagina}:\n{testo_pagina}")
+my_dict = dict()
 
+#Serializziamo il dizionario in binario e lo salviamo in un file
+#cosi da risparmiare tempo e non richiamare la funzione costosa
+try:
+    with open('my_dict.pickle', 'rb') as file:
+        my_dict = pickle.load(file)
+except FileNotFoundError:
+    my_dict = elaboratore_pdf.lettura_completa()
+    with open('my_dict.pickle', 'wb') as file:
+        pickle.dump(my_dict , file)
+
+
+
+# percorso_file = "output.txt"
+
+# # Apri il file in modalità scrittura
+# with open(percorso_file, 'w') as file:
+#     # Itera attraverso gli elementi della lista e scrivili su file
+#     for elemento in list(my_dict.values())[8]:
+#         file.write(str(elemento) + '\n')
 
 #TEST2 PRE-ELABORAZIONE TESTO PAGINA PDF 
-pre_elaborazione_pdf = Preprocessing(testo_pagina)
-pre_elaborazione_pdf.remove_url()
-pre_elaborazione_pdf.remove_whitespace()
-pre_elaborazione_pdf.tokenizzazione()
-#pre_elaborazione_pdf.spelling_correction()
-pre_elaborazione_pdf.lowercasing()
-pre_elaborazione_pdf.remove_punctuation()
-pre_elaborazione_pdf.remove_stopword()
-tfidf_vectors = pre_elaborazione_pdf.TFIDF(pre_elaborazione_pdf.get_tokens())
+# pre_elaborazione_pdf = PreprocessingTesto(testoprova)
+# pre_elaborazione_pdf.clean_text()
+# pre_elaborazione_pdf.remove_url()
+# pre_elaborazione_pdf.remove_whitespace()
+# pre_elaborazione_pdf.remove_punctuation()
+# pre_elaborazione_pdf.lowercasing()
 
-print(pre_elaborazione_pdf.get_text())
-
-class Preprocessings:
-    #constructor
-    def __init__(self,txt):
-        # Tokenization
-        nltk.download('punkt')  #punkt is nltk tokenizer 
-        # breaking text to sentences
-        tokens = nltk.sent_tokenize(txt) 
-        self.tokens = tokens
-        self.tfidfvectoriser=TfidfVectorizer()
-
-    # Data Cleaning
-    # remove extra spaces
-    # convert sentences to lower case 
-    # remove stopword
-    def clean_sentence(self, sentence, stopwords=False):
-        sentence = sentence.lower().strip()
-        sentence = re.sub(r'[^a-z0-9\s]', '', sentence)
-        if stopwords:
-            sentence = remove_stopwords(sentence)
-        return sentence
-
-    # store cleaned sentences to cleaned_sentences
-    def get_cleaned_sentences(self,tokens, stopwords=False):
-        cleaned_sentences = []
-        for line in tokens:
-            cleaned = self.clean_sentence(line, stopwords)
-            cleaned_sentences.append(cleaned)
-        return cleaned_sentences
-
-    #do all the cleaning
-    def cleanall(self):
-        cleaned_sentences = self.get_cleaned_sentences(self.tokens, stopwords=True)
-        cleaned_sentences_with_stopwords = self.get_cleaned_sentences(self.tokens, stopwords=False)
-        # print(cleaned_sentences)
-        # print(cleaned_sentences_with_stopwords)
-        return [cleaned_sentences,cleaned_sentences_with_stopwords]
-
-    # TF-IDF Vectorizer
-    def TFIDF(self,cleaned_sentences):
-        self.tfidfvectoriser.fit(cleaned_sentences)
-        tfidf_vectors=self.tfidfvectoriser.transform(cleaned_sentences)
-        return tfidf_vectors
-
-    #tfidf for question
-    def TFIDF_Q(self,question_to_be_cleaned):
-        tfidf_vectors=self.tfidfvectoriser.transform([question_to_be_cleaned])
-        return tfidf_vectors
-
-    # main call function
-    def doall(self):
-        cleaned_sentences, cleaned_sentences_with_stopwords = self.cleanall()
-        tfidf = self.TFIDF(cleaned_sentences)
-        return [cleaned_sentences,cleaned_sentences_with_stopwords,tfidf]
+# pattern_capitolo = re.compile(r'\bcapitolo \d+\b')
+# match_capitolo = re.findall(pattern_capitolo, pre_elaborazione_pdf.get_text())
+# #print(match_capitolo)
 
 
-preprocess = Preprocessings(testo_pagina)
+
+preprocess = Preprocessing(testo_pagina)
 cleaned_sentences,cleaned_sentences_with_stopwords,tfidf_vectors = preprocess.doall()
-print(cleaned_sentences)
-user_question = "java per la prima volta"
+#print(cleaned_sentences)
+user_question = "cos'è il timesharing?"
+
 #define method
 method = 1
 question = preprocess.clean_sentence(user_question, stopwords=True)
 question_embedding = preprocess.TFIDF_Q(question)
-
 similarity_heap = AnswerMe.RetrieveAnswer(question_embedding , tfidf_vectors ,method)
-print("Question: ", user_question)
+print("\nQuestion: ", user_question)
 
 # number of relevant solutions you want here it will print 2
 number_of_sentences_to_print = 1
